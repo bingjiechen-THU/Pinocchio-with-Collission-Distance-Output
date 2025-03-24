@@ -3,6 +3,7 @@ This example shows PyRoboPlan capabilities for path planning using
 Rapidly-Exploring Random Tree (RRT) algorithm on a 7-DOF Panda robot.
 """
 
+
 from pinocchio.visualize import MeshcatVisualizer
 import time
 

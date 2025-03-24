@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "pyroboplan"
 version = "1.1.0"
 dependencies = [
-  "drake == 1.38.0",
+  "drake == 1.26.0",
   "pin == 3.4.0",
   "matplotlib == 3.10.1",
   "meshcat == 0.3.2",

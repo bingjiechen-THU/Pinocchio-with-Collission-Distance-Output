@@ -1,8 +1,5 @@
 """
-This example shows PyRoboPlan capabilities around Pinocchio to import a model
-and perform collision checking along a predefined path.
-These capabilities form the basis of collision checking for validating other
-motion planning components such as inverse kinematics and path planning.
+Collision detection and nearest distance between shapes are added.
 """
 
 import coal
@@ -25,32 +22,64 @@ def prepare_collision_scene(model, collision_model):
     for cobj in collision_model.geometryObjects:
         cobj.meshColor = np.array([0.7, 0.7, 0.7, 0.25])
 
-    # Add collision objects
-    obstacle_0 = pinocchio.GeometryObject(
-        "obstacle_0",
-        0,
-        pinocchio.SE3(np.eye(3), np.array([0.0, 0.1, 1.1])),
-        coal.Sphere(0.2),
-    )
-    obstacle_0.meshColor = np.array([0.0, 1.0, 0.0, 0.2])
-    collision_model.addGeometryObject(obstacle_0)
-
+    # Table surface
     obstacle_1 = pinocchio.GeometryObject(
-        "obstacle_1",
+        "table",
         0,
-        pinocchio.SE3(np.eye(3), np.array([-0.5, 0.5, 0.7])),
-        coal.Box(0.3, 0.3, 0.3),
+        pinocchio.SE3(np.eye(3), np.array([0, 0.6, 0.3])),
+        coal.Box(1, 0.6, 0.04),
     )
     obstacle_1.meshColor = np.array([0.0, 1.0, 0.0, 0.2])
     collision_model.addGeometryObject(obstacle_1)
+    
+    # The first table leg
+    obstacle_2 = pinocchio.GeometryObject(
+        "table_leg1",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([0.48, 0.32, 0.15])),
+        coal.Cylinder(0.02, 0.3),
+    )
+    obstacle_2.meshColor = np.array([0.0, 1.0, 0.0, 0.2])
+    collision_model.addGeometryObject(obstacle_2)
 
-    # Define the active collision pairs
+    # The second table leg
+    obstacle_3 = pinocchio.GeometryObject(
+        "table_leg2",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([0.48, 0.88, 0.15])),
+        coal.Cylinder(0.02, 0.3),
+    )
+    obstacle_3.meshColor = np.array([0.0, 1.0, 0.0, 0.2])
+    collision_model.addGeometryObject(obstacle_3)
+
+    # The third table leg
+    obstacle_4 = pinocchio.GeometryObject(
+        "table_leg3",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([-0.48, 0.32, 0.15])),
+        coal.Cylinder(0.02, 0.3),
+    )
+    obstacle_4.meshColor = np.array([0.0, 1.0, 0.0, 0.2])
+    collision_model.addGeometryObject(obstacle_4)
+
+    # The fourth table leg
+    obstacle_5 = pinocchio.GeometryObject(
+        "table_leg4",
+        0,
+        pinocchio.SE3(np.eye(3), np.array([-0.48, 0.88, 0.15])),
+        coal.Cylinder(0.02, 0.3),
+    )
+    obstacle_5.meshColor = np.array([0.0, 1.0, 0.0, 0.2])
+    collision_model.addGeometryObject(obstacle_5)
+
+    
+    # Gets the ncollision name of the robotic arm
     collision_names = [
         cobj.name for cobj in collision_model.geometryObjects if "panda" in cobj.name
     ]
     
-    # 激活碰撞对，使得机械臂的每一个部件和障碍物一一组合成碰撞对
-    obstacle_names = ["obstacle_0", "obstacle_1"]
+    # The collision pair is activated so that each component and obstacle of the robot arm are combined into a collision pair one by one
+    obstacle_names = ["table"]
     for obstacle_name in obstacle_names:
         for collision_name in collision_names:
             set_collisions(model, collision_model, obstacle_name, collision_name, True)
@@ -60,7 +89,10 @@ def prepare_collision_scene(model, collision_model):
 if __name__ == "__main__":
     # Create models and data
     model, collision_model, visual_model = load_models()
-    add_self_collisions(model, collision_model)
+    
+    # collision pairs of the robot arm self 
+    # add_self_collisions(model, collision_model)
+    
     prepare_collision_scene(model, collision_model)
 
     data = model.createData()
@@ -88,10 +120,12 @@ if __name__ == "__main__":
 
     # Collision check along the path
     for q in q_path:
+        
         pinocchio.computeCollisions(
             model, data, collision_model, collision_data, q, False
         )
-
+        
+        dis = []
         contacts = []
         for k in range(len(collision_model.collisionPairs)):
             cr = collision_data.collisionResults[k]
@@ -107,6 +141,20 @@ if __name__ == "__main__":
                     contacts.extend(
                         [contact.getNearestPoint1(), contact.getNearestPoint2()]
                     )
+
+            
+            # Calculates the distance between collision pairs at the specified index k
+            pinocchio.computeDistance(collision_model, collision_data, k)
+            dis.append(collision_data.distanceResults[k].min_distance)
+            print(collision_model.geometryObjects[cp.first].name, collision_model.geometryObjects[cp.second].name, dis[-1])
+            
+            # it seems that python has no way to directly retrieve the nearest point between collision pairs, because the returned cpp type is not converted in the python interface at pinocchi
+            # print(f"Nearest point on object 1: {collision_data.distanceResults[k].nearest_points[0]}")
+            # print(f"Nearest point on object 2: {collision_data.distanceResults[k].nearest_points[1]}")
+   
+            
+        print("Obstacle Minimum Distance: ", min(dis))
+            
         if len(contacts) == 0:
             print("Found no collisions!")
 
