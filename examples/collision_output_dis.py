@@ -79,6 +79,7 @@ def prepare_collision_scene(model, collision_model):
     ]
     
     # The collision pair is activated so that each component and obstacle of the robot arm are combined into a collision pair one by one
+    # only add the table as an obstacle (without the legs)
     obstacle_names = ["table"]
     for obstacle_name in obstacle_names:
         for collision_name in collision_names:
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     # Create models and data
     model, collision_model, visual_model = load_models()
     
-    # collision pairs of the robot arm self 
+    # collision pairs of the robot arm self-collision
     # add_self_collisions(model, collision_model)
     
     prepare_collision_scene(model, collision_model)
